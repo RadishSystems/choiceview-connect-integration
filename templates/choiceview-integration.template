@@ -88,18 +88,14 @@ Rules:
   RegionSupport:
     Assertions:
     - Assert:
-        Fn::Equals:
-        - Ref: AWS::Region
-        - us-east-1
-      AssertDescription: Region must be US East (N. Virginia) - us-east-1
-  ConfigurationParamsNotEmpty:
-    Assertions:
-    - Assert:
-        Fn::Not:
-        - Fn::EachMemberEquals:
-          - Fn::RefAll: String
-          - ''
-      AssertDescription: All parameters must not be empty
+        Fn::Or:
+          - Fn::Equals:
+            - Ref: AWS::Region
+            - us-east-1
+          - Fn::Equals:
+            - Ref: AWS::Region
+            - us-west-2
+      AssertDescription: Region must be either US East (N. Virginia) - us-east-1 or US West (Oregon) - us-west-2
 Resources:
   ChoiceviewFunctionExecutionRole:
     Type: AWS::IAM::Role
