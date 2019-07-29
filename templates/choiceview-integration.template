@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Amazon Connect ChoiceView Integration Quick Start
+Description: Amazon Connect ChoiceView Integration Quick Start. (qs-1pqmcejqs)
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
