@@ -437,3 +437,5 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder
 .mfractor/
 
+# Taskcat output
+taskcat_outputs/
