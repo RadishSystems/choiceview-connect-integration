@@ -48,15 +48,10 @@ namespace ChoiceViewAPI
 
                 if (smsWorkflow != null)
                 {
-                    var smsMessage = (string)connectEvent.SelectToken("Details.Parameters.SmsMessage");
-                    if (!string.IsNullOrWhiteSpace(smsMessage))
-                    {
-                        context.Logger.LogLine("CreateSession - Attempt to send SMS with client url");
-                        var smsResponse = await smsWorkflow.Process(connectEvent, context);
-                        var smsSent = (bool)smsResponse["LambdaResult"];
-                        result.SmsSent = smsSent;
-                    }
-                    else result.SmsSent = false;
+                    context.Logger.LogLine("CreateSessionWithSms - Attempt to send SMS with client url");
+                    var smsResponse = await smsWorkflow.Process(connectEvent, context);
+                    var smsSent = (bool)smsResponse["LambdaResult"];
+                    result.SmsSent = smsSent;
                 }
 
                 using (var response = await _ApiClient.PostAsync("sessions",

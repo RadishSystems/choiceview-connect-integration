@@ -22,11 +22,47 @@ namespace ChoiceViewAPI
                 (string)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Address") : fromNumber;
             var message = (string)connectEvent.SelectToken("Details.Parameters.SmsMessage");
             var systemNumberType = (string)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Type");
-            
+
             bool result;
             if (customerNumberType.Equals("TELEPHONE_NUMBER") &&
                 (!string.IsNullOrWhiteSpace(fromNumber) || systemNumberType.Equals("TELEPHONE_NUMBER")))
             {
+                var requestName = (string) connectEvent.SelectToken("Details.Parameters.RequestName") ?? "(null)";
+                if (requestName.Equals("CreateSessionWithSms"))
+                {
+                    var phoneNumber = $"phone={IVRWorkflow.SwitchCallerId(customerNumber)}";
+                    try
+                    {
+                        var clientUrl = new UriBuilder(Environment.GetEnvironmentVariable("CHOICEVIEW_CLIENTURL") ??
+                                                       "https://choiceview.com/secure.html")
+                        {
+                            Query = phoneNumber
+                        };
+                        
+                        if (string.IsNullOrWhiteSpace(message)) 
+                            message = $"Tap this link to start ChoiceView: {clientUrl.Uri}";
+                        
+                        if(!message.Contains(phoneNumber) && !message.EndsWith("phone="))
+                            message += $" Tap this link to start ChoiceView: {clientUrl.Uri}";
+                    }
+                    catch (UriFormatException e)
+                    {
+                        context.Logger.LogLine($"Cannot create the ChoiceView client uri: {e.Message}");
+                    
+                        if(string.IsNullOrWhiteSpace(message) ||
+                           (!message.Contains(phoneNumber) && !message.EndsWith("phone=")))
+                            return new JObject(new JProperty("LambdaResult", false));
+                    }
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(message))
+                    {
+                        context.Logger.LogLine("No SMS message to send.");
+                        return new JObject(new JProperty("LambdaResult", false));
+                    }
+                }
+                
                 var numberType = await GetPhoneNumberType(customerNumber, context.Logger);
                 if (numberType.Equals("mobile"))
                 {
@@ -60,7 +96,9 @@ namespace ChoiceViewAPI
                     {
                         {"From", fromNumber},
                         {"To", toNumber},
-                        {"Body", message + IVRWorkflow.SwitchCallerId(toNumber)}
+                        {"Body", message.EndsWith("phone=") 
+                            ? message + IVRWorkflow.SwitchCallerId(toNumber)
+                            : message}
                     });
                 string status = smsResource.status;
                 result = status.Equals("queued");

@@ -77,10 +77,10 @@ The Lambda needs the following parameters to execute the CreateSessionWithSms ac
 - **RequestName**: CreateSessionWithSms
 - **SmsMessage**: An optional string with the text message to be sent to the caller
 
-The text message content will have this string appended:
+If the text message does not contain a url for starting the ChoiceView client, the text message content will have this string appended:
 > Tap this link to start ChoiceView: <https://choiceview.com/secure.html?phone=><caller's phone number>
 
-This is the url for starting the ChoiceView client. If the SmsMessage parameter is not set, then this is the text message that is sent to the caller.
+This is the default url for starting the ChoiceView client. If the SmsMessage parameter is not set, then this is the text message that is sent to the caller.
 
 #### CreateSessionWithSms Responses
 - **LambdaResult** 
