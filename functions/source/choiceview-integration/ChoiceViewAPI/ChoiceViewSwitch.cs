@@ -60,7 +60,7 @@ namespace ChoiceViewAPI
             }
             catch (ArgumentException ex)
             {
-                LambdaLogger.Log("ChoiceView API credentials not available from environemt - " + ex.Message);
+                LambdaLogger.Log("ChoiceView API credentials not available from environment - " + ex.Message);
             }
             catch (UriFormatException ex)
             {

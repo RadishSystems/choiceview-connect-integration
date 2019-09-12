@@ -185,6 +185,8 @@ namespace ChoiceViewAPI.Tests
     public class CreateSessionWithSmsWorkflowTests
     {
         private readonly JObject connectEvent;
+        private readonly JObject connectEventWithoutSmsMessage;
+        private readonly JObject connectEventWithoutClientUrl;
         private readonly TestLambdaContext context;
         private const string SmsNumber = "+15005550006";
         private const string QueryUrl = "sessions?callid=ASDAcxcasDFSSDFs";
@@ -222,11 +224,70 @@ namespace ChoiceViewAPI.Tests
     },
     ""Name"": ""ContactFlowEvent""
   }");
+            connectEventWithoutSmsMessage = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
+
+            connectEventWithoutClientUrl = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+        ""SmsMessage"": ""Welcome to the unit test!""
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
         }
 
         [Fact]
         public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithSms()
         {
+            var smsBodyNumber = connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address")
+                .Value<string>()
+                .Substring(1);
             var lookupsMock = new Mock<ITwilioLookupsApi>(MockBehavior.Strict);
             lookupsMock.Setup(api => api.NumberInfo(It.IsAny<string>(), It.IsAny<string>(), "carrier"))
                 .ReturnsAsync((string phoneNumber, string countryCode, string type) =>
@@ -234,7 +295,7 @@ namespace ChoiceViewAPI.Tests
 
             var messagingMock = new Mock<ITwilioMessagingApi>(MockBehavior.Strict);
             messagingMock.Setup(api => api.SendSMS(It.IsAny<string>(), It.Is<Dictionary<string, string>>(
-                    args => args["From"].Equals(SmsNumber))))
+                    args => args["From"].Equals(SmsNumber) && args["Body"].Contains($"={IVRWorkflow.SwitchCallerId(smsBodyNumber)}"))))
                 .ReturnsAsync((string accountSid, Dictionary<string, string> args) =>
                     JObject.Parse($"{{\"account_sid\": \"{accountSid}\",\"api_version\": \"2010-04-01\",\"body\": \"{args["Body"]}\",\"from\": \"{args["From"]}\",\"status\": \"sent\",\"to\": \"{args["To"]}\"}}"));
 
@@ -270,6 +331,105 @@ namespace ChoiceViewAPI.Tests
             }
 
             lookupsMock.VerifyAll();
+            messagingMock.VerifyAll();
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithSmsWithoutSmsMessageParameter()
+        {
+            var lookupsMock = new Mock<ITwilioLookupsApi>(MockBehavior.Strict);
+            lookupsMock.Setup(api => api.NumberInfo(It.IsAny<string>(), It.IsAny<string>(), "carrier"))
+                .ReturnsAsync((string phoneNumber, string countryCode, string type) =>
+                    JObject.Parse($"{{\"url\": \"https://lookups.twilio.com/v1/PhoneNumbers/{phoneNumber}?Type=carrier\",\"carrier\": {{ \"type\": \"mobile\" }},\"phone_number\": \"{phoneNumber}\",\"country_code\": \"{countryCode}\"}}"));
+
+            var messagingMock = new Mock<ITwilioMessagingApi>(MockBehavior.Strict);
+            messagingMock.Setup(api => api.SendSMS(It.IsAny<string>(), It.Is<Dictionary<string, string>>(
+                    args => args["From"].Equals(SmsNumber))))
+                .ReturnsAsync((string accountSid, Dictionary<string, string> args) =>
+                    JObject.Parse($"{{\"account_sid\": \"{accountSid}\",\"api_version\": \"2010-04-01\",\"body\": \"{args["Body"]}\",\"from\": \"{args["From"]}\",\"status\": \"sent\",\"to\": \"{args["To"]}\"}}"));
+
+            var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
+
+            var smsWorkflow = new SmsWorkflow(twilioApi);
+
+            using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            })
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", SmsNumber);
+                    var workflow = new CreateSessionWorkflow(testClient, smsWorkflow);
+                    var response = await workflow.Process(connectEventWithoutSmsMessage, context);
+
+                    Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                    Assert.True((bool)response["LambdaResult"]);
+                    Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                    Assert.False(response.TryGetValue("SessionStatus", out var value));
+                    Assert.False(response.TryGetValue("SessionUrl", out value));
+                    Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                    Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                    Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                    Assert.Equal(JTokenType.Date, value.Type);
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", null);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithoutClientUrl()
+        {
+            var smsBodyNumber = connectEventWithoutClientUrl.SelectToken("Details.ContactData.CustomerEndpoint.Address")
+                .Value<string>()
+                .Substring(1);
+            var lookupsMock = new Mock<ITwilioLookupsApi>(MockBehavior.Strict);
+            lookupsMock.Setup(api => api.NumberInfo(It.IsAny<string>(), It.IsAny<string>(), "carrier"))
+                .ReturnsAsync((string phoneNumber, string countryCode, string type) =>
+                    JObject.Parse($"{{\"url\": \"https://lookups.twilio.com/v1/PhoneNumbers/{phoneNumber}?Type=carrier\",\"carrier\": {{ \"type\": \"mobile\" }},\"phone_number\": \"{phoneNumber}\",\"country_code\": \"{countryCode}\"}}"));
+
+            var messagingMock = new Mock<ITwilioMessagingApi>(MockBehavior.Strict);
+            messagingMock.Setup(api => api.SendSMS(It.IsAny<string>(), It.Is<Dictionary<string, string>>(
+                    args => args["From"].Equals(SmsNumber) && args["Body"].Contains($"={IVRWorkflow.SwitchCallerId(smsBodyNumber)}"))))
+                .ReturnsAsync((string accountSid, Dictionary<string, string> args) =>
+                    JObject.Parse($"{{\"account_sid\": \"{accountSid}\",\"api_version\": \"2010-04-01\",\"body\": \"{args["Body"]}\",\"from\": \"{args["From"]}\",\"status\": \"sent\",\"to\": \"{args["To"]}\"}}"));
+
+            var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
+
+            var smsWorkflow = new SmsWorkflow(twilioApi);
+
+            using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            })
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", SmsNumber);
+                    var workflow = new CreateSessionWorkflow(testClient, smsWorkflow);
+                    var response = await workflow.Process(connectEventWithoutClientUrl, context);
+
+                    Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                    Assert.True((bool)response["LambdaResult"]);
+                    Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                    Assert.False(response.TryGetValue("SessionStatus", out var value));
+                    Assert.False(response.TryGetValue("SessionUrl", out value));
+                    Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                    Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                    Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                    Assert.Equal(JTokenType.Date, value.Type);
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", null);
+                }
+            }
+
+            lookupsMock.VerifyAll();
+            messagingMock.VerifyAll();
         }
     }
 }
