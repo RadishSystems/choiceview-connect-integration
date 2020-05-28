@@ -1,4 +1,3 @@
-
 {
     "Information" : [
         "This file provides default values for the deployment wizard inside Visual Studio and the AWS Lambda commands added to the .NET Core CLI.",
@@ -9,8 +8,8 @@
     "profile"     : "Radish",
     "region"      : "us-east-1",
     "configuration" : "Release",
-    "framework"     : "netcoreapp2.1",
-    "function-runtime" : "dotnetcore2.1",
+    "framework"     : "netcoreapp3.1",
+    "function-runtime" : "dotnetcore3.1",
     "function-memory-size" : 1024,
     "function-timeout"     : 8,
     "function-handler"     : "ChoiceViewAPI::ChoiceViewAPI.Function::FunctionHandler",
