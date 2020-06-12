@@ -42,6 +42,35 @@ namespace ChoiceViewAPI.Tests
     },
     ""Name"": ""ContactFlowEvent""
   }");
+        private static readonly JObject ConnectEventWithMessageEndingWithPhoneParameterAndSkipNumberCheckSet = 
+            JObject.Parse(@"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": """",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": """",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""SendSms"",
+        ""SmsMessage"": ""Tap this link to start ChoiceView: https://choiceview.com/secure.html?phone="",
+        ""SkipNumberCheck"": ""true""
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
         private static readonly JObject ConnectEventWithMessageWithClientUrl = 
             JObject.Parse(@"{
     ""Details"": {
@@ -171,6 +200,36 @@ namespace ChoiceViewAPI.Tests
             Assert.True(lambdaResult.Value<bool>(), "LambdaResult value is not true");
 
             lookupsMock.VerifyAll();
+            messagingMock.VerifyAll();
+        }
+
+        [Fact]
+        public async Task SmsReturnsTrueIfValidCredentialsAndMessageQueuedAndSkipNumberCheckSet()
+        {
+            var lookupsMock = new Mock<ITwilioLookupsApi>(MockBehavior.Strict);
+            lookupsMock.Setup(api => api.NumberInfo(It.IsAny<string>(), It.IsAny<string>(), "carrier"))
+                .ReturnsAsync((string phoneNumber, string countryCode, string type) =>
+                    JObject.Parse($"{{\"url\": \"https://lookups.twilio.com/v1/PhoneNumbers/{phoneNumber}?Type=carrier\",\"carrier\": {{ \"type\": \"landline\" }},\"phone_number\": \"{phoneNumber}\",\"country_code\": \"{countryCode}\"}}"));
+
+            var smsBodyNumber = IVRWorkflow.SwitchCallerId(_customerNumber);
+            var messagingMock = new Mock<ITwilioMessagingApi>(MockBehavior.Strict);
+            messagingMock.Setup(api => api.SendSMS(It.IsAny<string>(), It.Is<Dictionary<string,string>>(
+                args => args["From"].Equals(_systemNumber) && args["To"].Equals(_customerNumber) && args["Body"].Contains($"={smsBodyNumber}"))))
+                .ReturnsAsync((string accountSid, Dictionary<string, string> args) =>
+                    JObject.Parse($"{{\"account_sid\": \"{accountSid}\",\"api_version\": \"2010-04-01\",\"body\": \"{args["Body"]}\",\"from\": \"{args["From"]}\",\"status\": \"queued\",\"to\": \"{args["To"]}\"}}"));
+
+            var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
+
+            var connectFunction = new SmsWorkflow(twilioApi);
+            var result = await connectFunction.Process(ConnectEventWithMessageEndingWithPhoneParameterAndSkipNumberCheckSet, _context);
+
+            Assert.Single(result);
+            var lambdaResult = result["LambdaResult"];
+            Assert.NotNull(lambdaResult);
+            Assert.True(lambdaResult.Type == JTokenType.Boolean, "LambdaResult type is not Boolean");
+            Assert.True(lambdaResult.Value<bool>(), "LambdaResult value is not true");
+
+            lookupsMock.Verify(api => api.NumberInfo(It.IsAny<string>(),It.IsAny<string>(),It.IsAny<string>()), Times.Never);
             messagingMock.VerifyAll();
         }
 

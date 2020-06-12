@@ -63,16 +63,21 @@ namespace ChoiceViewAPI
                     }
                 }
                 
-                var numberType = await GetPhoneNumberType(customerNumber, context.Logger);
-                if (numberType.Equals("mobile"))
+                var skipNumberCheck = connectEvent.SelectToken("Details.Parameters.SkipNumberCheck");
+                if (skipNumberCheck == null || !(bool)skipNumberCheck)
                 {
-                    result = await SendSMS(systemNumber, customerNumber, message, context.Logger);
+                    var numberType = await GetPhoneNumberType(customerNumber, context.Logger);
+                    if (numberType.Equals("mobile"))
+                    {
+                        result = await SendSMS(systemNumber, customerNumber, message, context.Logger);
+                    }
+                    else
+                    {
+                        context.Logger.LogLine("Cannot send SMS to a landline or VOIP telephone number.");
+                        result = false;
+                    }
                 }
-                else
-                {
-                    context.Logger.LogLine("Cannot send SMS to a landline or VOIP telephone number.");
-                    result = false;
-                }
+                else result = await SendSMS(systemNumber, customerNumber, message, context.Logger);
             }
             else
             {

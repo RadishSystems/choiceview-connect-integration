@@ -67,7 +67,7 @@ To start a ChoiceView session, the following steps are taken:
     The request does not start the session. For the session to start, the caller must start a ChoiceView client using the same phone number that was used to call the Connect instance. 
     The url sent in the text message will automatically start the client with the caller's phone number when clicked.
 
-If the Choiceview session create request is successfully sent to the ChoiceView server, the Lambda returns a success indication.
+If the ChoiceView session create request is successfully sent to the ChoiceView server, the Lambda returns a success indication.
 
 After requesting the session start, the caller has approximately 2 minutes to start the ChoiceView client. If the client does not connect to the ChoiceView server after 2 minutes, the server ends the session.
 The contact flow must check the session status to determine when the caller has connected to the server. This is done by calling the **QuerySession** action.
@@ -76,6 +76,7 @@ The contact flow must check the session status to determine when the caller has 
 The Lambda needs the following parameters to execute the CreateSessionWithSms action:
 - **RequestName**: CreateSessionWithSms
 - **SmsMessage**: An optional string with the text message to be sent to the caller
+- **SkipNumberCheck**: If set to _True_, the caller's phone number type will not be checked before sending a SMS message.
 
 If the text message does not contain a url for starting the ChoiceView client, the text message content will have this string appended:
 > Tap this link to start ChoiceView: <https://choiceview.com/secure.html?phone=><caller's phone number>
@@ -100,18 +101,18 @@ This is the default url for starting the ChoiceView client. If the SmsMessage pa
   If **SessionRetrieved** is true, then **ConnectStartTime** and **QueryUrl** will not be returned, and do not have to be copied to the contact attributes.
 - **SessionUrl**
   This url is called by the lambda to perform session operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 - **PropertiesUrl**
   This url is called by the lambda to perform session property operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 - **ControlMessageUrl**
   This url is called by the lambda to perform control message operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 
 When **SessionRetrieved** is _True_, the response will also contain the current state of the session and the session properties. 
 See the **GetSession** action for details about the session state and session parameters.
  
-This action will execute the **GetPhoneNumberType** action. If the caller's phone number is not of type "mobile", the action may succeed, but **SmsSent** will be _False_.
+This action will execute the **GetPhoneNumberType** action unless the **SkipNumberCheck** parameter is set to _True_. If the caller's phone number is not of type "mobile", the action may succeed, but **SmsSent** will be _False_.
 
 This action usually returns the result of sending the SMS message, the QueryUrl for checking the session state and the time that the session was created. 
 These responses have to be copied to the contact attributes to be referenced by the **QuerySession** action.
@@ -143,13 +144,13 @@ The Lambda needs the following parameters to execute the QuerySession action:
   _True_ if the session state is now available. This indicates that the caller has started the session.
 - **SessionUrl**
   This url is called by the lambda to perform session operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 - **PropertiesUrl**
   This url is called by the lambda to perform session property operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 - **ControlMessageUrl**
   This url is called by the lambda to perform control message operations. It is returned when the **SessionRetrieved** parameter is _True_. 
-  This parameter must be copied to the contact attributes for the lambda to sucessfully execute subsequent actions. 
+  This parameter must be copied to the contact attributes for the lambda to successfully execute subsequent actions. 
 
 When **SessionRetrieved** is _True_, the response will also contain the current state of the session and the session properties. 
 See the **GetSession** action for details about the session state and session parameters.
@@ -225,6 +226,7 @@ This action will execute the **GetPhoneNumberType** action. If the caller's phon
 The Lambda needs the following parameters to execute the SendSms action
 - **RequestName**: SendSms
 - **SmsMessage**: A string with the text message to be sent to the caller
+- **SkipNumberCheck**: If set to **true**, the caller's phone number type will not be checked before sending a SMS message.
 
 #### SendSms Responses
 - **LambdaResult** 
