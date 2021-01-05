@@ -9,4 +9,4 @@ RUN dotnet tool install -g Amazon.Lambda.Tools && dotnet restore ./ChoiceViewAPI
 
 # copy everything else and build app
 COPY ChoiceViewAPI/. ./ChoiceViewAPI/
-CMD mkdir -p /output && dotnet lambda package -pl /ChoiceViewAPI -o /output/ChoiceViewAPI.zip
+CMD mkdir -p /output && dotnet lambda package -pl /ChoiceViewAPI -o /output/choiceview-integration/ChoiceViewAPI.zip

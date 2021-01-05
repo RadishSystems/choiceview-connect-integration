@@ -116,7 +116,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Handler: ChoiceViewAPI::ChoiceViewAPI.Function::FunctionHandler
-      Runtime: dotnetcore2.1
+      Runtime: dotnetcore3.1
       Description: Amazon Connect ChoiceView Integration Function
       MemorySize: 1024
       Timeout: 8

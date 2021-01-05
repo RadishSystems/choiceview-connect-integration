@@ -68,7 +68,7 @@ namespace ChoiceViewAPI.Tests
         }
 
         [Fact]
-        public async Task SucessfullyCreatesTokenOnFirstMethodCallAfterCreation()
+        public async Task SuccessfullyCreatesTokenOnFirstMethodCallAfterCreation()
         {
             using (var clientHandler = new ChoiceViewClientHandler(_clientId, _clientSecret))
             {
@@ -80,11 +80,11 @@ namespace ChoiceViewAPI.Tests
         }
 
         [Fact]
-        public async Task SucessfullyCreatesTokenOnFirstRequestAfterCreation()
+        public async Task SuccessfullyCreatesTokenOnFirstRequestAfterCreation()
         {
             using (var httpClient = new HttpClient(new ChoiceViewClientHandler(_clientId, _clientSecret))
             {
-                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+                BaseAddress = new Uri("https://cvnet.radishsystems.com/ivr/api/")
             })
             {
                 httpClient.DefaultRequestHeaders.Clear();
