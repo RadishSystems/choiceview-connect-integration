@@ -23,7 +23,7 @@ namespace ChoiceViewAPI.Tests
                     null : new StringContent(jsonContent, Encoding.UTF8, "application/json"),
                 RequestMessage = new HttpRequestMessage(method, url)
             };
-            return await ApiException.Create(response.RequestMessage, method, response);
+            return await ApiException.Create(response.RequestMessage, method, response, new RefitSettings());
         }
     }
 }
