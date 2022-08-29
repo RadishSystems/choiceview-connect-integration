@@ -40,7 +40,7 @@ namespace ChoiceViewAPI
                             result.ControlMessageAvailable = true;
                             var controlMsg =
                                 JsonConvert.DeserializeObject<Dictionary<string,string>>(await response.Content.ReadAsStringAsync());
-                            context.Logger.LogLine("GetControlMessage - recieved control message:");
+                            context.Logger.LogLine("GetControlMessage - received control message:");
                             foreach (var formElement in controlMsg)
                             {
                                 result[formElement.Key] = formElement.Value;
