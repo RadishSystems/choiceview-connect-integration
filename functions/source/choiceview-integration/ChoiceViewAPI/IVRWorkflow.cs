@@ -44,7 +44,7 @@ namespace ChoiceViewAPI
             return string.IsNullOrWhiteSpace(failureReason) ? response.ReasonPhrase : failureReason;
         }
 
-        public static string SwitchCallerId(string callerId)
+        public static string? SwitchCallerId(string? callerId)
         {
             var cId = callerId.StartsWith("+") ? callerId.Substring(1) : callerId;
 
@@ -53,7 +53,7 @@ namespace ChoiceViewAPI
             return (len > 10) ? cId.Substring(len - 10) : cId;
         }
 
-        protected string MakeRelativeUri(string href)
+        protected string MakeRelativeUri(string? href)
         {
             return _ApiClient.BaseAddress.MakeRelativeUri(new Uri(href, UriKind.Absolute)).ToString();
         }

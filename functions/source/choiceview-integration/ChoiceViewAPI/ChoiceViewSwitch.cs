@@ -7,7 +7,7 @@ namespace ChoiceViewAPI
 {
     /// <summary>
     /// Encapsulates the HttpClient instance used to send API requests to the ChoiceView switch.
-    /// Creates the HttpClient uing parameters from the Lambda environment, and sets up the authentication handler.
+    /// Creates the HttpClient using parameters from the Lambda environment, and sets up the authentication handler.
     /// Should be used as a singleton, only one instance per AWS Lambda function.
     /// All IVR workflows have a constructor that takes an HttpClient instance, use ApiClient property.
     /// </summary>

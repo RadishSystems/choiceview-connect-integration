@@ -161,7 +161,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
 
-            var connectFunction = new SmsWorkflow(twilioApi);
+            var connectFunction = new TwilioSmsWorkflow(twilioApi);
             var result = await connectFunction.Process(ConnectEventWithMessageEndingWithPhoneParameter, _context);
 
             Assert.Single(result);
@@ -190,7 +190,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
 
-            var connectFunction = new SmsWorkflow(twilioApi);
+            var connectFunction = new TwilioSmsWorkflow(twilioApi);
             var result = await connectFunction.Process(ConnectEventWithMessageEndingWithPhoneParameter, _context);
 
             Assert.Single(result);
@@ -220,7 +220,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
 
-            var connectFunction = new SmsWorkflow(twilioApi);
+            var connectFunction = new TwilioSmsWorkflow(twilioApi);
             var result = await connectFunction.Process(ConnectEventWithMessageEndingWithPhoneParameterAndSkipNumberCheckSet, _context);
 
             Assert.Single(result);
@@ -251,7 +251,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
 
-            var connectFunction = new SmsWorkflow(twilioApi);
+            var connectFunction = new TwilioSmsWorkflow(twilioApi);
             try
             {
                 Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", _smsNumber);
@@ -289,7 +289,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", _systemNumber);
 
-            var connectFunction = new SmsWorkflow(twilioApi);
+            var connectFunction = new TwilioSmsWorkflow(twilioApi);
             try
             {
                 Environment.SetEnvironmentVariable("TWILIO_PHONENUMBER", _smsNumber);

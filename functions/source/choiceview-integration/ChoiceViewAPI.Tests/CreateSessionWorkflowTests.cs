@@ -330,7 +330,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
 
-            var smsWorkflow = new SmsWorkflow(twilioApi);
+            var smsWorkflow = new TwilioSmsWorkflow(twilioApi);
 
             using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
             {
@@ -379,7 +379,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
 
-            var smsWorkflow = new SmsWorkflow(twilioApi);
+            var smsWorkflow = new TwilioSmsWorkflow(twilioApi);
 
             using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
             {
@@ -428,7 +428,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
 
-            var smsWorkflow = new SmsWorkflow(twilioApi);
+            var smsWorkflow = new TwilioSmsWorkflow(twilioApi);
 
             using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
             {
@@ -480,7 +480,7 @@ namespace ChoiceViewAPI.Tests
 
             var twilioApi = new TwilioApi(lookupsMock.Object, messagingMock.Object, "ACxxxxxxxxxxxxxx", SmsNumber);
 
-            var smsWorkflow = new SmsWorkflow(twilioApi);
+            var smsWorkflow = new TwilioSmsWorkflow(twilioApi);
 
             using (var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
             {

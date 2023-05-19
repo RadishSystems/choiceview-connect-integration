@@ -11,12 +11,14 @@ namespace ChoiceViewAPI
 {
     public class CreateSessionWorkflow : IVRWorkflow
     {
-        private readonly SmsWorkflow smsWorkflow;
+        private readonly TwilioSmsWorkflow? _twilioSmsWorkflow;
+        private readonly AwsSmsWorkflow? _awsSmsWorkflow;
 
         public CreateSessionWorkflow(HttpClient apiClient, 
-            SmsWorkflow smsWorkflow = null) : base(apiClient)
+            TwilioSmsWorkflow? twilioSmsWorkflow = null, AwsSmsWorkflow? awsSmsWorkflow = null) : base(apiClient)
         {
-            this.smsWorkflow = smsWorkflow;
+            this._twilioSmsWorkflow = twilioSmsWorkflow;
+            this._awsSmsWorkflow = awsSmsWorkflow;
         }
 
         public override async Task<JObject> Process(JObject connectEvent, ILambdaContext context)
@@ -26,14 +28,15 @@ namespace ChoiceViewAPI
             {
                 dynamic newSessionParameters = new JObject();
                 var customerNumber =
-                    (string)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address");
-                var customerNumberType = (string)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type");
+                    (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address");
+                var customerNumberType = (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type");
 
-                if (customerNumberType.Equals("TELEPHONE_NUMBER"))
+                if (customerNumberType is "TELEPHONE_NUMBER")
                 {
                     var callerId = SwitchCallerId(customerNumber);
-                    newSessionParameters.callerId = callerId;
-                    newSessionParameters.callId = (string)connectEvent.SelectToken("Details.ContactData.ContactId");
+                    newSessionParameters.callerId = callerId ?? string.Empty;
+                    newSessionParameters.callId =
+                        (string)connectEvent.SelectToken("Details.ContactData.ContactId")!;
                     newSessionParameters.immediateReturn = true;
                     context.Logger.LogLine("CreateSession request for " + callerId);
                 }
@@ -46,11 +49,21 @@ namespace ChoiceViewAPI
                     return result;
                 }
 
-                if (smsWorkflow != null)
+                if (_twilioSmsWorkflow != null || _awsSmsWorkflow != null)
                 {
                     context.Logger.LogLine("CreateSessionWithSms - Attempt to send SMS with client url");
-                    var smsResponse = await smsWorkflow.Process(connectEvent, context);
-                    var smsSent = (bool)smsResponse["LambdaResult"];
+                    JObject smsResponse;
+                    bool smsSent = false;
+                    if (_twilioSmsWorkflow != null)
+                    {
+                        smsResponse = await _twilioSmsWorkflow.Process(connectEvent, context);
+                        smsSent = (bool)(smsResponse["LambdaResult"] ?? false);
+                    }
+                    else if (_awsSmsWorkflow != null)
+                    {
+                        smsResponse = await _awsSmsWorkflow.Process(connectEvent, context);
+                        smsSent = (bool)(smsResponse["LambdaResult"] ?? false);
+                    }
                     result.SmsSent = smsSent;
                 }
 
@@ -66,20 +79,21 @@ namespace ChoiceViewAPI
                         if (response.StatusCode == HttpStatusCode.Accepted)
                         {
                             var body = JObject.Parse(await response.Content.ReadAsStringAsync());
-                            var queryUrl = (string) body["QueryUrl"];
-                            result.ConnectStartTime = DateTime.Now;
-                            result.QueryUrl = MakeRelativeUri(queryUrl);
-                            context.Logger.LogLine("CreateSession - Session create started, return immediately");
-                            context.Logger.LogLine($"CreateSession - absolute query url = '{queryUrl}', QueryUrl parameter = '{(string)result["QueryUrl"]}'");
+                            {
+                                var queryUrl = (string?) body["QueryUrl"];
+                                result.ConnectStartTime = DateTime.Now;
+                                result.QueryUrl = MakeRelativeUri(queryUrl);
+                                context.Logger.LogLine("CreateSession - Session create started, return immediately");
+                                context.Logger.LogLine($"CreateSession - absolute query url = '{queryUrl}', QueryUrl parameter = '{(string)result["QueryUrl"]}'");
+                            }
                         }
                         else if (response.StatusCode == HttpStatusCode.Created)
                         {
                             var session =
-                                JsonConvert.DeserializeObject<SessionResource>(
-                                    await response.Content.ReadAsStringAsync());
+                                JsonConvert.DeserializeObject<SessionResource>(await response.Content.ReadAsStringAsync());
                             AddSessionToResult(result, session);
-                            result.SessionStatus = session.Status;
-                            context.Logger.LogLine($"CreateSession - session {session.SessionId} created");
+                            result.SessionStatus = session?.Status ?? "";
+                            context.Logger.LogLine($"CreateSession - session {session?.SessionId} created");
                         }
                         else await RequestFailed(response, result, context);
                     }

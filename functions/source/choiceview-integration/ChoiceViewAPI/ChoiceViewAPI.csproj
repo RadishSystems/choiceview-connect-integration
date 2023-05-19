@@ -1,14 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0.0</FileVersion>
-    <Version>4.0.0</Version>
+    <AssemblyVersion>4.1.0.0</AssemblyVersion>
+    <FileVersion>4.1.0.0</FileVersion>
+    <Version>4.1.0</Version>
     <AWSProjectType>Lambda</AWSProjectType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
     <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.1.0" />
+    <PackageReference Include="AWSSDK.Pinpoint" Version="3.7.101.11" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.101.66" />
     <PackageReference Include="Twilio.Refit" Version="3.0.3" />
   </ItemGroup>
 </Project>

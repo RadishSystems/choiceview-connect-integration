@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Amazon.Lambda.Core;
 using Newtonsoft.Json;
@@ -7,9 +8,9 @@ using Refit;
 
 namespace ChoiceViewAPI
 {
-    public class SmsWorkflow : TwilioWorkflow
+    public class TwilioSmsWorkflow : TwilioWorkflow
     {
-        public SmsWorkflow(TwilioApi twilioApi) : base(twilioApi) { }
+        public TwilioSmsWorkflow(TwilioApi twilioApi) : base(twilioApi) { }
 
         public override async Task<JObject> Process(JObject connectEvent, ILambdaContext context)
         {
@@ -91,13 +92,13 @@ namespace ChoiceViewAPI
             return new JObject(new JProperty("LambdaResult", result));
         }
 
-        private async Task<bool> SendSMS(string fromNumber, string toNumber, string message, ILambdaLogger logger)
+        private async Task<bool> SendSMS(string fromNumber, string? toNumber, string? message, ILambdaLogger logger)
         {
             bool result;
             try
             {
                 dynamic smsResource = await _twilioApi.MessagingApi.SendSMS(_twilioApi.AccountSid,
-                    new System.Collections.Generic.Dictionary<string, string>
+                    new Dictionary<string, string?>
                     {
                         {"From", fromNumber},
                         {"To", toNumber},
