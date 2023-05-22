@@ -47,16 +47,16 @@ public class AwsSmsWorkflow
         dynamic result =  new JObject();
 
         var customerNumber =
-            (string)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address")!;
-        var customerNumberType = (string)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type")!;
-        var systemNumber = (string)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Address");
-        var message = (string)connectEvent.SelectToken("Details.Parameters.SmsMessage");
-        var systemNumberType = (string)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Type");
+            (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address")!;
+        var customerNumberType = (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type")!;
+        var systemNumber = (string?)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Address");
+        var message = (string?)connectEvent.SelectToken("Details.Parameters.SmsMessage");
+        var systemNumberType = (string?)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Type");
 
         if (customerNumberType.Equals("TELEPHONE_NUMBER") && systemNumberType.Equals("TELEPHONE_NUMBER"))
         {
-            var requestName = (string) connectEvent.SelectToken("Details.Parameters.RequestName") ?? "(null)";
-            if (requestName.Equals("CreateSessionWithSms"))
+            var requestName = (string?) connectEvent.SelectToken("Details.Parameters.RequestName");
+            if (!string.IsNullOrEmpty(requestName) && requestName.Equals("CreateSessionWithSms"))
             {
                 var phoneNumber = $"phone={IVRWorkflow.SwitchCallerId(customerNumber)}";
                 try
@@ -80,6 +80,14 @@ public class AwsSmsWorkflow
                     if(string.IsNullOrWhiteSpace(message) ||
                        (!message.Contains(phoneNumber) && !message.EndsWith("phone=")))
                         return new JObject(new JProperty("LambdaResult", false));
+                }
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(message))
+                {
+                    context.Logger.LogLine("No SMS message to send.");
+                    return new JObject(new JProperty("LambdaResult", false));
                 }
             }
 
