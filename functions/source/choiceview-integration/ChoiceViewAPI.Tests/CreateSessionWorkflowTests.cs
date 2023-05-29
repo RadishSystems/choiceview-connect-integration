@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Amazon.Lambda.TestUtilities;
+using Amazon.Runtime;
+using Amazon.Runtime.CredentialManagement;
+using Amazon.SecurityToken;
 using Moq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -182,7 +185,7 @@ namespace ChoiceViewAPI.Tests
         }
     }
 
-    public class CreateSessionWithSmsWorkflowTests
+    public class CreateSessionWithTwilioSmsWorkflowTests
     {
         private readonly JObject connectEvent;
         private readonly JObject connectEventWithSkipNumberCheckSet;
@@ -192,7 +195,7 @@ namespace ChoiceViewAPI.Tests
         private const string SmsNumber = "+15005550006";
         private const string QueryUrl = "sessions?callid=ASDAcxcasDFSSDFs";
 
-        public CreateSessionWithSmsWorkflowTests()
+        public CreateSessionWithTwilioSmsWorkflowTests()
         {
             Environment.SetEnvironmentVariable("TWILIO_ACCOUNTSID", "ACxxxxxxxxxxxxxx");
             Environment.SetEnvironmentVariable("TWILIO_AUTHTOKEN", "TestAuthTokenValue");
@@ -276,7 +279,7 @@ namespace ChoiceViewAPI.Tests
         }
       },
       ""Parameters"": {
-        ""RequestName"": ""CreateSessionWithSms"",
+        ""RequestName"": ""CreateSessionWithSms""
       }
     },
     ""Name"": ""ContactFlowEvent""
@@ -511,6 +514,277 @@ namespace ChoiceViewAPI.Tests
 
             lookupsMock.Verify(api => api.NumberInfo(It.IsAny<string>(),It.IsAny<string>(),It.IsAny<string>()), Times.Never);
             messagingMock.VerifyAll();
+        }
+    }
+
+    public class CreateSessionWithAmazonSmsWorkflowTests
+    {
+        private readonly AWSCredentials _credentials;
+        private readonly AmazonSecurityTokenServiceClient _tokenService;
+        private readonly JObject connectEvent;
+        private readonly JObject connectEventWithSkipNumberCheckSet;
+        private readonly JObject connectEventWithoutSmsMessage;
+        private readonly JObject connectEventWithoutClientUrl;
+        private readonly TestLambdaContext context;
+        private const string SmsNumber = "+15005550006";
+        private const string QueryUrl = "sessions?callid=ASDAcxcasDFSSDFs";
+
+        public CreateSessionWithAmazonSmsWorkflowTests()
+        {
+            var profileStore = new CredentialProfileStoreChain();
+            if (!profileStore.TryGetAWSCredentials("connect-development", out _credentials))
+            {
+                _credentials = new AnonymousAWSCredentials();
+            }
+
+            _tokenService = new AmazonSecurityTokenServiceClient(_credentials);
+
+            context = new TestLambdaContext();
+            connectEvent = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+        ""SmsMessage"": ""Tap this link to start ChoiceView: http://choiceview.com/start.html?account=radish1&phone=""
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
+            connectEventWithSkipNumberCheckSet = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+        ""SmsMessage"": ""Tap this link to start ChoiceView: http://choiceview.com/start.html?account=radish1&phone="",
+        ""SkipNumberCheck"": ""true""
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
+            connectEventWithoutSmsMessage = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
+            connectEventWithoutClientUrl = JObject.Parse(
+                @"{
+    ""Details"": {
+      ""ContactData"": {
+        ""Attributes"": {},
+        ""Channel"": ""VOICE"",
+        ""ContactId"": ""ASDAcxcasDFSSDFs"",
+        ""CustomerEndpoint"": {
+          ""Address"": ""+17202950840"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        },
+        ""InitialContactId"": ""ASDAcxcasDFSSDFs"",
+        ""InitiationMethod"": ""INBOUND"",
+        ""InstanceARN"": """",
+        ""PreviousContactId"": """",
+        ""Queue"": null,
+        ""SystemEndpoint"": {
+          ""Address"": ""+18582016694"",
+          ""Type"": ""TELEPHONE_NUMBER""
+        }
+      },
+      ""Parameters"": {
+        ""RequestName"": ""CreateSessionWithSms"",
+        ""SmsMessage"": ""Welcome to the unit test!""
+      }
+    },
+    ""Name"": ""ContactFlowEvent""
+  }");
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithSms()
+        {
+            var smsBodyNumber = connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address")
+                .Value<string>()
+                .Substring(1);
+
+            var smsWorkflow = new AwsSmsWorkflow(_credentials);
+
+            using var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            };
+
+            try
+            {
+                Environment.SetEnvironmentVariable("UseAwsSms", "true");
+                var workflow = new CreateSessionWorkflow(testClient, awsSmsWorkflow: smsWorkflow);
+                var response = await workflow.Process(connectEvent, context);
+
+                Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                Assert.True((bool)response["LambdaResult"]);
+                Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                Assert.False(response.TryGetValue("SessionStatus", out var value));
+                Assert.False(response.TryGetValue("SessionUrl", out value));
+                Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                Assert.Equal(JTokenType.Date, value.Type);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("UseAwsSms", "false");
+            }
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithSmsWithoutSmsMessageParameter()
+        {
+            var smsWorkflow = new AwsSmsWorkflow(_credentials);
+
+            using var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            };
+            try
+            {
+                Environment.SetEnvironmentVariable("UseAwsSms", "true");
+                var workflow = new CreateSessionWorkflow(testClient, awsSmsWorkflow: smsWorkflow);
+                var response = await workflow.Process(connectEventWithoutSmsMessage, context);
+
+                Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                Assert.True((bool)response["LambdaResult"]);
+                Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                Assert.False(response.TryGetValue("SessionStatus", out var value));
+                Assert.False(response.TryGetValue("SessionUrl", out value));
+                Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                Assert.Equal(JTokenType.Date, value.Type);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("UseAwsSms", "false");
+            }
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithoutClientUrl()
+        {
+            var smsWorkflow = new AwsSmsWorkflow(_credentials);
+
+            using var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            };
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable("UseAwsSms", "true");
+                    var workflow = new CreateSessionWorkflow(testClient, awsSmsWorkflow: smsWorkflow);
+                    var response = await workflow.Process(connectEventWithoutClientUrl, context);
+
+                    Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                    Assert.True((bool)response["LambdaResult"]);
+                    Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                    Assert.False(response.TryGetValue("SessionStatus", out var value));
+                    Assert.False(response.TryGetValue("SessionUrl", out value));
+                    Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                    Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                    Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                    Assert.Equal(JTokenType.Date, value.Type);
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable("UseAwsSms", "false");
+                }
+            }
+        }
+
+        [Fact]
+        public async Task SendsSmsAndReturnsQueryUrlWhenCallerStartsSessionWithSmsAndSkipNumberCheckIsTrue()
+        {
+            var smsWorkflow = new AwsSmsWorkflow(_credentials);
+
+            using var testClient = new HttpClient(new SuccessfulCreateSessionImmediateReturn())
+            {
+                BaseAddress = new Uri("https://cvnet2.radishsystems.com/ivr/api/")
+            };
+            {
+                try
+                {
+                    Environment.SetEnvironmentVariable("UseAwsSms", "true");
+                    var workflow = new CreateSessionWorkflow(testClient, awsSmsWorkflow: smsWorkflow);
+                    var response = await workflow.Process(connectEventWithSkipNumberCheckSet, context);
+
+                    Assert.Equal(JTokenType.Boolean, response["LambdaResult"].Type);
+                    Assert.True((bool)response["LambdaResult"]);
+                    Assert.Equal(QueryUrl, response["QueryUrl"].Value<string>());
+                    Assert.False(response.TryGetValue("SessionStatus", out var value));
+                    Assert.False(response.TryGetValue("SessionUrl", out value));
+                    Assert.False(response.TryGetValue("PropertiesUrl", out value));
+                    Assert.False(response.TryGetValue("ControlMessageUrl", out value));
+                    Assert.True(response.TryGetValue("ConnectStartTime", out value));
+                    Assert.Equal(JTokenType.Date, value.Type);
+                }
+                finally
+                {
+                    Environment.SetEnvironmentVariable("UseAwsSms", "false");
+                }
+            }
         }
     }
 }

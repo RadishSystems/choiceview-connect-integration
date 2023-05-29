@@ -47,8 +47,8 @@ public class AwsSmsWorkflow
         dynamic result =  new JObject();
 
         var customerNumber =
-            (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address")!;
-        var customerNumberType = (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type")!;
+            (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Address");
+        var customerNumberType = (string?)connectEvent.SelectToken("Details.ContactData.CustomerEndpoint.Type");
         var systemNumber = (string?)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Address");
         var message = (string?)connectEvent.SelectToken("Details.Parameters.SmsMessage");
         var systemNumberType = (string?)connectEvent.SelectToken("Details.ContactData.SystemEndpoint.Type");
@@ -69,9 +69,11 @@ public class AwsSmsWorkflow
                         
                     if (string.IsNullOrWhiteSpace(message)) 
                         message = $"Tap this link to start ChoiceView: {clientUrl.Uri}";
-                        
-                    if(!message.Contains(phoneNumber) && !message.EndsWith("phone="))
+
+                    if (!message.Contains(phoneNumber) && !message.EndsWith("phone="))
                         message += $" Tap this link to start ChoiceView: {clientUrl.Uri}";
+                    else if (message.EndsWith("phone="))
+                        message += IVRWorkflow.SwitchCallerId(customerNumber);
                 }
                 catch (UriFormatException e)
                 {
@@ -81,6 +83,7 @@ public class AwsSmsWorkflow
                        (!message.Contains(phoneNumber) && !message.EndsWith("phone=")))
                         return new JObject(new JProperty("LambdaResult", false));
                 }
+                context.Logger.LogLine($"SMS message: {message}");
             }
             else
             {
@@ -95,7 +98,7 @@ public class AwsSmsWorkflow
             var request = new PublishRequest
             {
                 Message = message,
-                PhoneNumber = customerNumber,
+                PhoneNumber = customerNumber
             };
             var skipNumberCheck = connectEvent.SelectToken("Details.Parameters.SkipNumberCheck");
             if (skipNumberCheck == null || !(bool)skipNumberCheck)
@@ -110,6 +113,8 @@ public class AwsSmsWorkflow
                         result.FailureReason = "Cannot send SMS to a landline or VOIP telephone number.";
                         return result;
                     }
+                    if (customerNumber != validateResponse.CleansedPhoneNumberE164)
+                        request.PhoneNumber = validateResponse.CleansedPhoneNumberE164;
                 }
                 catch (AmazonPinpointException ex)
                 {
